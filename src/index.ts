@@ -1,9 +1,10 @@
-import EventEmitter from "node:events";
+import { EventHandler } from "./event-handler";
+import { MessageMaker } from "./message-maker";
 
-const emitter = new EventEmitter();
+const eventEmitter = EventHandler.getInstance().eventEmitter;
 
-emitter.on("message", (data) => {
-  console.log(data);
+new MessageMaker(EventHandler.getInstance());
+
+eventEmitter.on("add_new_message", (message) => {
+  console.log(message);
 });
-
-emitter.emit("message", "Hello");
