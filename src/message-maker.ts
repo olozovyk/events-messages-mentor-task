@@ -4,9 +4,11 @@ import { getRandomNumber } from "./utils";
 import { EventHandler } from "./event-handler";
 
 export class MessageMaker {
-  constructor(private readonly eventHandler: EventHandler) {
-    this.createMessageByInterval();
+  constructor() {
+    this.createMessage = this.createMessage.bind(this);
   }
+
+  private eventHandler = EventHandler.getInstance();
 
   private priorities: PriorityType[] = ["critical", "high", "normal"];
 
@@ -20,11 +22,9 @@ export class MessageMaker {
     };
   }
 
-  private createMessageByInterval(): IMessage | void {
+  public run(): void {
     setInterval(() => {
-      if (Math.random() > 0.5) {
-        this.eventHandler.addNewMessage(this.createMessage());
-      }
+      this.eventHandler.addNewMessageEmit(this.createMessage());
     }, 1000);
   }
 }

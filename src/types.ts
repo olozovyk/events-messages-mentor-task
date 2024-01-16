@@ -9,8 +9,8 @@ export interface IMessage {
 
 export interface IMessageWithStatus extends IMessage {
   status: {
-    sent: boolean;
-    handled: boolean;
+    sent: string[];
+    handled: string[];
   };
 }
 

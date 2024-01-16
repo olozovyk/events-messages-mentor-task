@@ -4,9 +4,6 @@ import { IMessage } from "./types";
 export class EventHandler {
   private static instance: EventHandler;
 
-  // TODO: change to static
-  public eventEmitter = new EventEmitter();
-
   static getInstance(): EventHandler {
     if (!EventHandler.instance) {
       EventHandler.instance = new EventHandler();
@@ -15,7 +12,19 @@ export class EventHandler {
     return EventHandler.instance;
   }
 
-  public addNewMessage(message: IMessage): void {
+  private constructor() {}
+
+  private eventEmitter = new EventEmitter();
+
+  public addNewMessageEmit(message: IMessage): void {
     this.eventEmitter.emit("add_new_message", message);
+  }
+
+  public addNewMessageOn(callback: (msg: IMessage) => void): void {
+    this.eventEmitter.on("add_new_message", callback);
+  }
+
+  public sendMessagesEmit(consumer: string, messages: IMessage) {
+    this.eventEmitter.emit(consumer, messages);
   }
 }

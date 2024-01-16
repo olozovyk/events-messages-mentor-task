@@ -1,10 +1,9 @@
-import { EventHandler } from "./event-handler";
 import { MessageMaker } from "./message-maker";
+import { QueueHandler } from "./queue-handler";
 
-const eventEmitter = EventHandler.getInstance().eventEmitter;
+const bootstrap = () => {
+  QueueHandler.getInstance().run();
+  new MessageMaker().run();
+};
 
-new MessageMaker(EventHandler.getInstance());
-
-eventEmitter.on("add_new_message", (message) => {
-  console.log(message);
-});
+bootstrap();
