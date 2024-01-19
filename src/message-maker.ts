@@ -4,17 +4,18 @@ import { getRandomNumber } from "./utils";
 import { EventHandler } from "./event-handler";
 
 export class MessageMaker {
+  private static priorities: PriorityType[] = ["critical", "high", "normal"];
+
   constructor() {
     this.createMessage = this.createMessage.bind(this);
   }
 
   private eventHandler = EventHandler.getInstance();
 
-  private priorities: PriorityType[] = ["critical", "high", "normal"];
-
   private createMessage(): IMessage {
     const id = randomUUID();
-    const priority = this.priorities[getRandomNumber(0, 2)];
+    const priority = MessageMaker.priorities[getRandomNumber(0, 2)];
+
     return {
       id,
       message: `[${priority}] - ${id}`,
@@ -24,7 +25,7 @@ export class MessageMaker {
 
   public run(): void {
     setInterval(() => {
-      this.eventHandler.addNewMessageEmit(this.createMessage());
+      this.eventHandler.addNewMsgEmit(this.createMessage());
     }, 1000);
   }
 }

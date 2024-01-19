@@ -14,8 +14,20 @@ export interface IMessageWithStatus extends IMessage {
   };
 }
 
-type IQueueMapped = {
+type QueueMapped = {
   [key in PriorityType]: IMessageWithStatus[];
 };
 
-export interface IQueue extends IQueueMapped {}
+export interface IQueue extends QueueMapped {}
+
+type InnerQueueMapped = {
+  [key in PriorityType]: IMessage[];
+};
+
+export interface IInnerQueue extends InnerQueueMapped {}
+
+export interface IConsumer {
+  [key: string]: {
+    availableNumberMsgs: number;
+  };
+}

@@ -12,19 +12,40 @@ export class EventHandler {
     return EventHandler.instance;
   }
 
-  private constructor() {}
+  private constructor() {
+    this.eventEmitter.on("error", (e) => {
+      console.log(e().message);
+    });
+  }
 
   private eventEmitter = new EventEmitter();
 
-  public addNewMessageEmit(message: IMessage): void {
+  public addNewMsgEmit(message: IMessage): void {
     this.eventEmitter.emit("add_new_message", message);
   }
 
-  public addNewMessageOn(callback: (msg: IMessage) => void): void {
+  public addNewMsgOn(callback: (msg: IMessage) => void): void {
     this.eventEmitter.on("add_new_message", callback);
   }
 
-  public sendMessagesEmit(consumer: string, messages: IMessage) {
+  public sendMsgsEmit(consumer: string, messages: IMessage[]): void {
     this.eventEmitter.emit(consumer, messages);
+  }
+
+  public receiveMsgsOn(
+    consumer: string,
+    callback: (msg: IMessage[]) => void,
+  ): void {
+    this.eventEmitter.on(consumer, callback);
+  }
+
+  public markMsgHandledEmit(id: string, consumer: string): void {
+    this.eventEmitter.emit("handled", { id, consumer });
+  }
+
+  public getHandledMsgOn(
+    callback: ({ id, consumer }: { id: string; consumer: string }) => void,
+  ): void {
+    this.eventEmitter.on("handled", callback);
   }
 }
