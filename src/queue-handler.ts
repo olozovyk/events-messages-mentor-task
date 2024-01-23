@@ -17,8 +17,16 @@ export class QueueHandler {
     this.deleteHandledMsg = this.deleteHandledMsg.bind(this);
   }
 
+  private _interval: number = 1000;
   private eventHandler = EventHandler.getInstance();
   private _consumers: IConsumer = {};
+
+  public setInterval(intervalMs: number): this {
+    if (intervalMs < 0) return this;
+
+    this._interval = intervalMs;
+    return this;
+  }
 
   set consumer({
     consumer,
@@ -38,6 +46,10 @@ export class QueueHandler {
     normal: [],
   };
 
+  /**
+   * Places each message in a subqueue with the appropriate priority. This
+   * eliminates the need for complex searches for each output message.
+   */
   private addToQueue(message: IMessage): void {
     this.queue[message.priority].push({
       ...message,
@@ -48,6 +60,10 @@ export class QueueHandler {
     });
   }
 
+  /**
+   * Goes through each category subqueue until the required number of unsent
+   * messages for a consumer is picked.
+   */
   private getMsgsToSend(consumer: string, numberMsgsToSend: number) {
     const messages: IMessage[] = [];
 
@@ -82,6 +98,10 @@ export class QueueHandler {
     return messages;
   }
 
+  /**
+   * Picks messages from a specific subqueue and marks each picked message as sent
+   * to a specific consumer (adds the consumer to the sent array).
+   */
   private getMsgsByCategory(
     category: PriorityType,
     consumer: string,
@@ -104,37 +124,70 @@ export class QueueHandler {
     return messages;
   }
 
-  private deleteHandledMsg({ id, consumer }: { id: string; consumer: string }) {
+  /**
+   * Sends messages to consumers and decrements the counter of available
+   * messages for a specific consumer.
+   */
+  private sendMsgsToConsumer() {
+    for (const consumer of Object.keys(this._consumers)) {
+      if (this._consumers[consumer].availableNumberMsgs === 0) continue;
+
+      const msgs = this.getMsgsToSend(
+        consumer,
+        this._consumers[consumer].availableNumberMsgs,
+      );
+
+      if (!msgs.length) continue;
+
+      this._consumers[consumer].availableNumberMsgs -= msgs.length;
+      this.eventHandler.sendMsgsEmit(consumer, msgs);
+    }
+  }
+
+  private findMsgPriorityAndIdx(id: string): {
+    priority: PriorityType | undefined;
+    idx: number | undefined;
+  } {
     let priority: PriorityType | undefined;
     let idx: number | undefined;
 
-    // find msg in the queue - the priority and the index in the priority array:
     type KeyQueueType = keyof typeof this.queue;
 
     out: for (const key of Object.keys(this.queue)) {
       for (let i = 0; i < this.queue[key as KeyQueueType].length; i++) {
         const msg = this.queue[key as KeyQueueType][i];
 
-        if (msg.id === id) {
-          priority = msg.priority;
-          idx = i;
-          break out;
-        }
+        if (msg.id !== id) continue;
+
+        priority = msg.priority;
+        idx = i;
+        break out;
       }
     }
 
+    return { priority, idx };
+  }
+
+  /**
+   * Marks a message as handled and deletes it  from the queue if all consumers
+   * have handled the message.
+   */
+  private deleteHandledMsg({
+    id,
+    consumer,
+  }: {
+    id: string;
+    consumer: string;
+  }): void {
+    const { priority, idx } = this.findMsgPriorityAndIdx(id);
     if (priority === undefined || idx === undefined) return;
 
     const msg = this.queue[priority][idx];
-
     msg.status.handled.push(consumer);
 
-    // check should I delete the message. Did all consumers handle the message?
-    const consumers = Object.keys(this._consumers);
-
-    /* If at least one existed consumer is absent in the handled array - flag 
-    false, message won't be deleted */
     let isMsgHandled: boolean = true;
+
+    const consumers = Object.keys(this._consumers);
 
     consumers.forEach((consumer) => {
       if (!msg.status.handled.includes(consumer)) {
@@ -142,12 +195,13 @@ export class QueueHandler {
       }
     });
 
-    if (isMsgHandled) {
-      this.queue[priority].splice(idx, 1);
-      consumers.forEach((consumer) => {
-        this._consumers[consumer].availableNumberMsgs += 1;
-      });
-    }
+    if (!isMsgHandled) return;
+
+    this.queue[priority].splice(idx, 1);
+    consumers.forEach((consumer) => {
+      // Increases the counter of available messages for a specific consumer:
+      this._consumers[consumer].availableNumberMsgs += 1;
+    });
   }
 
   public run(): void {
@@ -155,21 +209,9 @@ export class QueueHandler {
     this.eventHandler.getHandledMsgOn(this.deleteHandledMsg);
 
     setInterval(() => {
-      for (const consumer of Object.keys(this._consumers)) {
-        if (this._consumers[consumer].availableNumberMsgs === 0) continue;
+      this.sendMsgsToConsumer();
 
-        const msgs = this.getMsgsToSend(
-          consumer,
-          this._consumers[consumer].availableNumberMsgs,
-        );
-
-        if (msgs.length) {
-          this._consumers[consumer].availableNumberMsgs -= msgs.length;
-          this.eventHandler.sendMsgsEmit(consumer, msgs);
-        }
-      }
-
-      // just to print number of msgs:
+      // just to print number of msgs in the queue:
       const msgNumber = Object.values(this.queue).reduce<number>(
         (acc, msgs) => {
           if (!Array.isArray(msgs)) return acc;
@@ -179,6 +221,6 @@ export class QueueHandler {
         0,
       );
       console.log(msgNumber, "messages in the queue");
-    }, 1000);
+    }, this._interval);
   }
 }

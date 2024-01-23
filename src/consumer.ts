@@ -23,18 +23,30 @@ export class Consumer {
     normal: [],
   };
 
-  set msgNumber(msgNumber: number) {
+  public setMsgNumber(msgNumber: number): this {
+    if (msgNumber < 0) return this;
+
     this._msgNumber = msgNumber;
+    return this;
   }
 
-  set delayRun(delayMs: number) {
+  public setRunDelay(delayMs: number): this {
+    if (delayMs < 0) return this;
+
     this._delayRun = delayMs;
+    return this;
   }
 
-  set handlingInterval(intervalMs: number) {
+  public setHandlingInterval(intervalMs: number): this {
+    if (intervalMs < 0) return this;
+
     this._handlingInterval = intervalMs;
+    return this;
   }
 
+  /**
+   * Adds received messages to inner subqueues to make retrieving messages by priorities easier.
+   */
   private consumeMsgs(msgs: IMessage[]) {
     msgs.forEach((msg) => {
       this.innerQueue[msg.priority].push(msg);

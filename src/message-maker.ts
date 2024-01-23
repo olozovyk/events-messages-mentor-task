@@ -10,6 +10,15 @@ export class MessageMaker {
     this.createMessage = this.createMessage.bind(this);
   }
 
+  private _interval: number = 1000;
+
+  public setInterval(intervalMs: number): this {
+    if (intervalMs < 0) return this;
+
+    this._interval = intervalMs;
+    return this;
+  }
+
   private eventHandler = EventHandler.getInstance();
 
   private createMessage(): IMessage {
@@ -26,6 +35,6 @@ export class MessageMaker {
   public run(): void {
     setInterval(() => {
       this.eventHandler.addNewMsgEmit(this.createMessage());
-    }, 1000);
+    }, this._interval);
   }
 }
